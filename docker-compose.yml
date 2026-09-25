@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: bartender-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - bartender-net
+
+  server:
+    build: ./server
+    container_name: bartender-server
+    restart: unless-stopped
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongo:27017/bartender_consulting
+    depends_on:
+      - mongo
+    ports:
+      - "5000:5000"
+    networks:
+      - bartender-net
+
+  client:
+    build: ./client
+    container_name: bartender-client
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "3000:80"
+    networks:
+      - bartender-net
+
+volumes:
+  mongo-data:
+
+networks:
+  bartender-net:
+    driver: bridge
