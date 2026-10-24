@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Service = require('../models/Service');
+const { protect, adminOnly } = require('../middleware/auth');
 
+// GET all services (public)
 router.get('/', async (req, res) => {
   try {
     let services = await Service.find({ available: true });
@@ -43,11 +45,51 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET one (public)
 router.get('/:id', async (req, res) => {
   try {
     const service = await Service.findById(req.params.id);
     if (!service) return res.status(404).json({ error: 'Service not found' });
     res.json(service);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST (admin only)
+router.post('/', protect, adminOnly, async (req, res) => {
+  try {
+    const { name, description, price, duration, image, available } = req.body;
+    if (!name || !description || price == null || !duration) {
+      return res.status(400).json({ error: 'name, description, price, duration required' });
+    }
+    const service = await Service.create({ name, description, price, duration, image, available });
+    res.status(201).json(service);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT (admin only)
+router.put('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const service = await Service.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    });
+    if (!service) return res.status(404).json({ error: 'Service not found' });
+    res.json(service);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE (admin only)
+router.delete('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const service = await Service.findByIdAndDelete(req.params.id);
+    if (!service) return res.status(404).json({ error: 'Service not found' });
+    res.json({ message: 'Service deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
